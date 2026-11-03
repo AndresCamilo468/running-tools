@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Running Tools</title>
-<meta name="description" content="Tabla de paces y calculadora de carreras: distancia, tiempo y pace.">
+<meta name="description" content="Tabla de paces, mapa de objetivos, calculadora de carreras, predicción de tiempos y ritmos de entrenamiento.">
 <meta name="theme-color" content="#2356A8">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232356A8'/%3E%3Cpath d='M8 22l6-12 4 8 2-4 4 8' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,10 +18,18 @@
     --ink: #13202C;
     --muted: #5A6B7B;
     --line: #C9D3DC;
+    --grid: #E3E9EE;
     --track: #2356A8;
     --track-soft: #DCE7F7;
     --on-track: #FFFFFF;
     --on-track-line: rgba(255, 255, 255, .38);
+    --hero-a: #2A63BE;
+    --hero-b: #16376F;
+    --on-hero: #FFFFFF;
+    --accent: #FF6B3D;
+    /* Intensidad de los ritmos: un solo tono, claro → oscuro = suave → fuerte */
+    --z1: #A9C4EE; --z2: #7AA3E3; --z3: #4A80D4; --z4: #2356A8; --z5: #173C7A;
+    --shadow: 0 1px 2px rgba(19, 32, 44, .06), 0 6px 20px rgba(19, 32, 44, .06);
     --radius: 16px;
     --display: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', system-ui, sans-serif;
     --body: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -30,14 +38,20 @@
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #0D141B; --surface: #15202A; --surface-2: #1A2733; --ink: #E5ECF2; --muted: #8FA0B0;
-      --line: #2A3947; --track: #5E95EC; --track-soft: #1C3355; --on-track: #08111C;
-      --on-track-line: rgba(8, 17, 28, .32); color-scheme: dark;
+      --line: #2A3947; --grid: #1F2C38; --track: #5E95EC; --track-soft: #1C3355; --on-track: #08111C;
+      --on-track-line: rgba(8, 17, 28, .32);
+      --hero-a: #1F3D6B; --hero-b: #101F35; --on-hero: #E5ECF2; --accent: #FF8A62;
+      --z1: #24467A; --z2: #305C9E; --z3: #4377C6; --z4: #5E95EC; --z5: #9ABFF6;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3); color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
     --bg: #0D141B; --surface: #15202A; --surface-2: #1A2733; --ink: #E5ECF2; --muted: #8FA0B0;
-    --line: #2A3947; --track: #5E95EC; --track-soft: #1C3355; --on-track: #08111C;
-    --on-track-line: rgba(8, 17, 28, .32); color-scheme: dark;
+    --line: #2A3947; --grid: #1F2C38; --track: #5E95EC; --track-soft: #1C3355; --on-track: #08111C;
+    --on-track-line: rgba(8, 17, 28, .32);
+    --hero-a: #1F3D6B; --hero-b: #101F35; --on-hero: #E5ECF2; --accent: #FF8A62;
+    --z1: #24467A; --z2: #305C9E; --z3: #4377C6; --z4: #5E95EC; --z5: #9ABFF6;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3); color-scheme: dark;
   }
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -50,32 +64,53 @@
 
   /* Cabecera y pestañas */
   .appbar {
-    position: sticky; top: 0; z-index: 10; background: var(--bg);
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    -webkit-backdrop-filter: saturate(1.4) blur(10px); backdrop-filter: saturate(1.4) blur(10px);
     padding-top: env(safe-area-inset-top, 0px);
     border-bottom: 1px solid var(--line);
   }
-  .appbar-in { max-width: 46rem; margin: 0 auto; padding: 12px 16px 0; }
+  .appbar-in { max-width: 52rem; margin: 0 auto; padding: 12px 16px 0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   .brand {
     font-family: var(--display); font-weight: 700; font-size: 1.35rem;
-    letter-spacing: .02em; text-transform: uppercase; margin: 0 0 8px;
-    display: flex; align-items: center; gap: 8px;
+    letter-spacing: .02em; text-transform: uppercase; margin: 0 0 10px;
+    display: flex; align-items: center; gap: 8px; flex: 1 1 auto;
   }
-  .brand svg { width: 24px; height: 24px; }
-  .tabs { display: flex; gap: 4px; }
+  .brand svg { width: 26px; height: 26px; }
+  .tabs { display: flex; gap: 4px; flex: 1 1 18rem; }
   .tabs a {
     flex: 1; text-align: center; text-decoration: none; color: var(--muted);
-    font-weight: 600; font-size: .98rem; padding: 10px 8px 12px;
+    font-weight: 600; font-size: .98rem; padding: 8px 8px 12px;
     border-bottom: 3px solid transparent; margin-bottom: -1px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   }
+  .tabs a svg { width: 18px; height: 18px; }
   .tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--track); }
 
-  main { max-width: 46rem; margin: 0 auto; padding: 22px 16px 48px; }
+  main { max-width: 52rem; margin: 0 auto; padding: 20px 16px 48px; }
   .view[hidden] { display: none; }
-  .narrow { max-width: 30rem; margin: 0 auto; }
+  .narrow { max-width: 34rem; margin: 0 auto; }
 
-  h1 { font-family: var(--display); font-weight: 700; font-size: 2.1rem; line-height: 1; margin: 0 0 6px; }
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative; overflow: hidden; border-radius: 22px;
+    background: linear-gradient(135deg, var(--hero-a), var(--hero-b));
+    color: var(--on-hero); padding: 22px 22px 20px; min-height: 168px;
+    box-shadow: var(--shadow);
+  }
+  .hero-art { position: absolute; right: -8px; bottom: 0; height: 100%; width: auto; pointer-events: none; }
+  .hero-text { position: relative; max-width: min(62%, 26rem); }
+  .eyebrow { font-size: .78rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; opacity: .8; margin: 0 0 4px; }
+  h1 { font-family: var(--display); font-weight: 700; font-size: clamp(2rem, 7vw, 2.6rem); line-height: 1; margin: 0 0 8px; }
+  .hero .hint { color: inherit; opacity: .85; }
   .hint { margin: 0; color: var(--muted); font-size: .98rem; }
-  .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; margin-bottom: 6px; }
+  .chips { position: relative; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .chip {
+    font-size: .82rem; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+    background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .22);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .chip.hot { background: var(--accent); border-color: var(--accent); color: #1B0E08; }
 
   .units { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
   .units button {
@@ -84,8 +119,19 @@
   }
   .units button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 
+  /* ---------- Tarjetas ---------- */
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px 16px 14px; margin-top: 16px; position: relative;
+  }
+  .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 16px; flex-wrap: wrap; margin-bottom: 8px; }
+  h2 { font-family: var(--display); font-weight: 700; font-size: 1.45rem; line-height: 1.1; margin: 0; display: flex; align-items: center; gap: 8px; }
+  h2 svg { width: 22px; height: 22px; color: var(--track); flex: none; }
+  .card-sub { font-size: .88rem; color: var(--muted); margin: 2px 0 0; }
+
   /* ---------- Tabla de paces ---------- */
-  .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 16px 0 12px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 18px 0 0; }
+  .controls .units { margin-left: auto; }
   .ctl { display: flex; flex-direction: column; gap: 4px; }
   .ctl label, .ctl .ctl-name { font-size: .85rem; color: var(--muted); font-weight: 600; }
   .ctl select, .ctl input {
@@ -95,23 +141,45 @@
   .ctl input { width: 6.5rem; font-variant-numeric: tabular-nums; }
   .ctl input:focus, .ctl select:focus { outline: 2px solid var(--track); outline-offset: 1px; border-color: var(--track); }
 
+  /* Mapa de objetivos */
+  .goalmap { position: relative; width: 100%; touch-action: pan-y; }
+  .goalmap svg { display: block; width: 100%; overflow: visible; font-family: var(--body); }
+  .goalmap text { fill: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  .goalmap .rowname { fill: var(--ink); font-weight: 600; font-size: 13px; }
+  .goalmap .tgt { fill: var(--ink); font-weight: 600; }
+  .tip {
+    position: absolute; top: 0; z-index: 4; pointer-events: none;
+    background: var(--ink); color: var(--bg); border-radius: 10px; padding: 8px 10px;
+    font-size: .82rem; line-height: 1.35; white-space: nowrap; font-variant-numeric: tabular-nums;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .2);
+  }
+  .tip b { font-family: var(--display); font-size: 1.1rem; display: block; }
+  .tip span { display: flex; justify-content: space-between; gap: 14px; }
+  .tip span i { font-style: normal; opacity: .7; }
+
   .table-wrap {
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-    overflow: auto; max-height: calc(100vh - 260px); max-height: calc(100dvh - 260px); min-height: 320px;
+    box-shadow: var(--shadow);
+    overflow: auto; max-height: calc(100vh - 200px); max-height: calc(100dvh - 200px); min-height: 320px;
+    margin-top: 16px;
   }
   table { border-collapse: separate; border-spacing: 0; width: 100%; font-variant-numeric: tabular-nums; }
-  th, td { padding: 9px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  th, td { padding: 9px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
   thead th {
     position: sticky; top: 0; z-index: 2; background: var(--surface-2);
     font-size: .8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em;
+    border-bottom: 1px solid var(--line);
   }
   th:first-child, td:first-child { position: sticky; left: 0; text-align: left; background: var(--surface); z-index: 1; }
   thead th:first-child { z-index: 3; background: var(--surface-2); }
   td:first-child { font-family: var(--display); font-weight: 600; font-size: 1.2rem; }
   td { font-size: .98rem; }
   td.kmh { color: var(--muted); }
+  td.kmh .spd { display: inline-flex; align-items: center; gap: 8px; }
+  td.kmh .bar { display: inline-block; height: 6px; border-radius: 0 3px 3px 0; background: var(--track); opacity: .55; }
   tbody tr:last-child td { border-bottom: 0; }
-  tbody tr.minute td { border-top: 1px solid var(--muted); }
+  tbody tr.minute td { border-top: 1px solid var(--line); }
+  tbody tr.minute td:first-child { color: var(--track); }
   tbody tr:hover td { background: var(--surface-2); }
   tbody tr.hl td { background: var(--track-soft); }
   tbody tr.hl td:first-child { box-shadow: inset 4px 0 0 var(--track); }
@@ -120,11 +188,13 @@
   /* ---------- Calculadora ---------- */
   .field {
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 14px 16px 16px; margin-top: 12px;
+    padding: 14px 16px 16px; margin-top: 12px; box-shadow: var(--shadow);
     transition: background-color .22s ease, border-color .22s ease, color .22s ease;
   }
+  .calc-top { display: flex; justify-content: flex-end; margin-top: 16px; }
   .field-head { display: flex; justify-content: space-between; align-items: center; min-height: 26px; }
-  .name { font-weight: 600; font-size: .95rem; color: var(--muted); }
+  .name { font-weight: 600; font-size: .95rem; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  .name svg { width: 17px; height: 17px; }
   .badge {
     font-size: .8rem; font-weight: 600; padding: 2px 10px; border-radius: 999px;
     background: var(--on-track); color: var(--track);
@@ -162,26 +232,100 @@
   .field.is-computed .presets button { border-color: var(--on-track-line); }
   .field.is-computed .presets button[aria-pressed="true"] { background: var(--on-track); color: var(--track); border-color: var(--on-track); }
 
-  .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; padding: 0 4px; }
-  .stat .k { font-size: .85rem; color: var(--muted); }
-  .stat .v { font-family: var(--display); font-weight: 600; font-size: 1.7rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
-  .actions { margin-top: 14px; padding: 0 4px; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px;
+    display: flex; gap: 12px; align-items: center; box-shadow: var(--shadow);
+  }
+  .stat-ic { width: 38px; height: 38px; border-radius: 10px; background: var(--track-soft); color: var(--track); display: grid; place-items: center; flex: none; }
+  .stat-ic svg { width: 22px; height: 22px; }
+  .stat .k { font-size: .82rem; color: var(--muted); }
+  .stat .v { font-family: var(--display); font-weight: 600; font-size: 1.55rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .actions { margin-top: 10px; padding: 0 4px; display: flex; flex-wrap: wrap; gap: 8px 20px; }
   .linkbtn {
     font: 600 .95rem var(--body); background: transparent; border: 0; padding: 8px 0;
     color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
   }
   .linkbtn.primary { color: var(--track); }
 
+  /* Predicciones */
+  .preds { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 6px; }
+  .pred { border: 1px solid var(--grid); background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
+  .pred .pn { font-size: .82rem; font-weight: 600; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
+  .pred .pt { font-family: var(--display); font-weight: 600; font-size: 1.6rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .pred .pp { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .pred.mine { background: var(--track-soft); border-color: var(--track); }
+  .pred .tag { font-size: .72rem; color: var(--track); text-transform: uppercase; letter-spacing: .04em; }
+
+  /* Ritmos de entrenamiento */
+  .zones { margin-top: 8px; display: grid; grid-template-columns: minmax(6.5rem, auto) 1fr auto; column-gap: 12px; row-gap: 12px; align-items: center; }
+  .zname { font-weight: 600; font-size: .95rem; line-height: 1.15; }
+  .zname small { display: block; font-weight: 400; color: var(--muted); font-size: .76rem; }
+  .ztrack { position: relative; height: 14px; border-radius: 7px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--grid); }
+  .zbar { position: absolute; top: 0; bottom: 0; border-radius: 7px; min-width: 8px; }
+  .zval { font-variant-numeric: tabular-nums; font-size: .9rem; font-weight: 600; text-align: right; white-space: nowrap; }
+  .zaxis { grid-column: 2; position: relative; height: 18px; margin-top: -4px; }
+  .zaxis span { position: absolute; transform: translateX(-50%); font-size: .74rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .note { font-size: .8rem; color: var(--muted); margin: 12px 0 0; }
+
   :focus-visible { outline: 2px solid var(--track); outline-offset: 2px; }
   .big:focus-visible { outline: none; }
   .field.is-computed :focus-visible { outline-color: var(--on-track); }
   [hidden] { display: none !important; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-  footer { max-width: 46rem; margin: 0 auto; padding: 0 16px 32px; font-size: .8rem; color: var(--muted); }
+  footer { max-width: 52rem; margin: 0 auto; padding: 0 16px 32px; font-size: .8rem; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  footer svg { width: 16px; height: 16px; }
+  @media (max-width: 520px) {
+    .hero { padding: 18px 16px 16px; }
+    .hero-art { opacity: .55; right: -40px; }
+    .hero-text { max-width: 100%; }
+    .controls .units { margin-left: 0; }
+    .summary { grid-template-columns: 1fr; }
+    .zones { grid-template-columns: 5.6rem 1fr auto; column-gap: 8px; }
+  }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
 </style>
 </head>
 <body>
+<!-- Ilustración reutilizable: curva de pista de atletismo -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="trail" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".9"/>
+    </linearGradient>
+    <symbol id="track-art" viewBox="0 0 240 170">
+      <circle cx="40" cy="200" r="122" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="104"/>
+      <g fill="none" stroke="#fff" stroke-opacity=".42" stroke-width="1.4">
+        <circle cx="40" cy="200" r="70"/><circle cx="40" cy="200" r="87"/><circle cx="40" cy="200" r="104"/>
+        <circle cx="40" cy="200" r="121"/><circle cx="40" cy="200" r="138"/><circle cx="40" cy="200" r="155"/>
+        <circle cx="40" cy="200" r="174" stroke-opacity=".7" stroke-width="2"/>
+      </g>
+      <!-- línea de meta (a cuadros) -->
+      <g stroke="#fff" stroke-width="7">
+        <path d="M93.6 155 L158.8 100.4" stroke-dasharray="5 5" stroke-opacity=".9"/>
+        <path d="M89.2 158.7 L154.3 104.1" stroke-dasharray="5 5" stroke-dashoffset="5" stroke-opacity=".9"/>
+      </g>
+      <g fill="#fff" fill-opacity=".75" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="11" text-anchor="middle">
+        <text x="111" y="166">1</text><text x="129" y="166">2</text><text x="147" y="166">3</text>
+        <text x="165" y="166">4</text><text x="182.5" y="166">5</text><text x="200" y="166">6</text>
+      </g>
+      <!-- corredor y su estela -->
+      <path d="M134.6 120.7 A112.5 112.5 0 0 0 92.8 100.6" fill="none" stroke="url(#trail)" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="92.8" cy="100.6" r="9" fill="var(--accent)" stroke="#fff" stroke-width="3"/>
+    </symbol>
+    <symbol id="i-table" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18M3 15h18M9 4v16"/></g></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6M12 2v3"/></g></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></g></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></g></symbol>
+    <symbol id="i-speed" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4-5"/></g></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h12l-3-3M17 17H5l3 3"/></g></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/></g></symbol>
+    <symbol id="i-pulse" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-5 4 10 2-5h6"/></g></symbol>
+    <symbol id="i-shoe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17v-4l4-6 3 2 2 3 6 1a3 3 0 0 1 3 3v1H3zM3 20h18"/></g></symbol>
+  </defs>
+</svg>
+
 <header class="appbar">
   <div class="appbar-in">
     <p class="brand">
@@ -189,8 +333,8 @@
       Running Tools
     </p>
     <nav class="tabs" aria-label="Herramientas">
-      <a href="#tabla" data-view="tabla">Tabla de paces</a>
-      <a href="#calculadora" data-view="calculadora">Calculadora</a>
+      <a href="#tabla" data-view="tabla"><svg aria-hidden="true"><use href="#i-table"/></svg>Tabla de paces</a>
+      <a href="#calculadora" data-view="calculadora"><svg aria-hidden="true"><use href="#i-calc"/></svg>Calculadora</a>
     </nav>
   </div>
 </header>
@@ -198,14 +342,18 @@
 <main>
   <!-- ================= TABLA ================= -->
   <section class="view" id="view-tabla" aria-labelledby="t-title">
-    <div class="top">
-      <div>
+    <div class="hero">
+      <svg class="hero-art" viewBox="0 0 240 170" aria-hidden="true"><use href="#track-art"/></svg>
+      <div class="hero-text">
+        <p class="eyebrow">Ritmo · velocidad · tiempo</p>
         <h1 id="t-title">Tabla de paces</h1>
-        <p class="hint">Velocidad y tiempo esperado por distancia para cada pace.</p>
+        <p class="hint">Velocidad y tiempo esperado en cada distancia para cada pace.</p>
       </div>
-      <div class="units" role="group" aria-label="Unidad del pace">
-        <button type="button" data-tunit="km" aria-pressed="true">/km</button>
-        <button type="button" data-tunit="mi" aria-pressed="false">/milla</button>
+      <div class="chips" aria-live="polite">
+        <span class="chip" id="t-chip-range">3:45–7:00 /km</span>
+        <span class="chip" id="t-chip-step">cada 5 s</span>
+        <span class="chip" id="t-chip-rows"></span>
+        <span class="chip hot" id="t-chip-me" hidden></span>
       </div>
     </div>
 
@@ -225,13 +373,29 @@
       <div class="ctl">
         <label for="t-step">Cada</label>
         <select id="t-step">
-          <option value="5">5 s</option>
-          <option value="10" selected>10 s</option>
+          <option value="5" selected>5 s</option>
+          <option value="10">10 s</option>
           <option value="15">15 s</option>
           <option value="30">30 s</option>
         </select>
       </div>
+      <div class="units" role="group" aria-label="Unidad del pace">
+        <button type="button" data-tunit="km" aria-pressed="true">/km</button>
+        <button type="button" data-tunit="mi" aria-pressed="false">/milla</button>
+      </div>
     </div>
+
+    <section class="card" aria-labelledby="g-title">
+      <div class="card-head">
+        <div>
+          <h2 id="g-title"><svg aria-hidden="true"><use href="#i-flag"/></svg>Mapa de objetivos</h2>
+          <p class="card-sub">Qué pace necesitas para bajar de cada marca clásica. Toca el gráfico para buscar ese pace.</p>
+        </div>
+      </div>
+      <div class="goalmap" id="g-map">
+        <div class="tip" id="g-tip" hidden></div>
+      </div>
+    </section>
 
     <div class="table-wrap" id="t-wrap" tabindex="0" aria-label="Tabla de paces, desplazable">
       <table>
@@ -254,11 +418,16 @@
 
   <!-- ================= CALCULADORA ================= -->
   <section class="view narrow" id="view-calculadora" aria-labelledby="c-title" hidden>
-    <div class="top">
-      <div>
+    <div class="hero">
+      <svg class="hero-art" viewBox="0 0 240 170" aria-hidden="true"><use href="#track-art"/></svg>
+      <div class="hero-text">
+        <p class="eyebrow">Distancia · tiempo · pace</p>
         <h1 id="c-title">Calculadora</h1>
-        <p class="hint">Escribe dos valores y el tercero se calcula solo.</p>
+        <p class="hint">Escribe dos valores y el tercero se calcula solo. Con una marca, te predice otras carreras y tus ritmos de entrenamiento.</p>
       </div>
+    </div>
+
+    <div class="calc-top">
       <div class="units" role="group" aria-label="Unidad de distancia">
         <button type="button" data-unit="km" aria-pressed="true">km</button>
         <button type="button" data-unit="mi" aria-pressed="false">millas</button>
@@ -267,7 +436,7 @@
 
     <section class="field" id="f-dist">
       <div class="field-head">
-        <label class="name" for="dist">Distancia</label>
+        <label class="name" for="dist"><svg aria-hidden="true"><use href="#i-pin"/></svg>Distancia</label>
         <span class="badge" hidden>Calculado</span>
       </div>
       <div class="dist-row">
@@ -285,7 +454,7 @@
 
     <section class="field" id="f-time">
       <div class="field-head">
-        <span class="name" id="time-name">Tiempo</span>
+        <span class="name" id="time-name"><svg aria-hidden="true"><use href="#i-calc"/></svg>Tiempo</span>
         <span class="badge" hidden>Calculado</span>
       </div>
       <div class="seg seg-3" role="group" aria-labelledby="time-name">
@@ -302,7 +471,7 @@
 
     <section class="field" id="f-pace">
       <div class="field-head">
-        <span class="name" id="pace-name">Pace</span>
+        <span class="name" id="pace-name"><svg aria-hidden="true"><use href="#i-shoe"/></svg>Pace</span>
         <span class="badge" hidden>Calculado</span>
       </div>
       <div class="seg seg-2" role="group" aria-labelledby="pace-name">
@@ -317,12 +486,12 @@
 
     <div class="summary">
       <div class="stat">
-        <div class="k">Velocidad media</div>
-        <div class="v" id="speed">–</div>
+        <div class="stat-ic"><svg aria-hidden="true"><use href="#i-speed"/></svg></div>
+        <div><div class="k">Velocidad media</div><div class="v" id="speed">–</div></div>
       </div>
       <div class="stat">
-        <div class="k" id="alt-label">Pace en millas</div>
-        <div class="v" id="alt-pace">–</div>
+        <div class="stat-ic"><svg aria-hidden="true"><use href="#i-swap"/></svg></div>
+        <div><div class="k" id="alt-label">Pace en millas</div><div class="v" id="alt-pace">–</div></div>
       </div>
     </div>
 
@@ -331,11 +500,32 @@
       <button type="button" class="linkbtn" id="clear">Borrar todo</button>
     </div>
 
+    <section class="card" id="c-pred" aria-labelledby="p-title" hidden>
+      <div class="card-head">
+        <div>
+          <h2 id="p-title"><svg aria-hidden="true"><use href="#i-trophy"/></svg>Predicción de carreras</h2>
+          <p class="card-sub" id="p-sub"></p>
+        </div>
+      </div>
+      <div class="preds" id="preds"></div>
+    </section>
+
+    <section class="card" id="c-zones" aria-labelledby="z-title" hidden>
+      <div class="card-head">
+        <div>
+          <h2 id="z-title"><svg aria-hidden="true"><use href="#i-pulse"/></svg>Ritmos de entrenamiento</h2>
+          <p class="card-sub">Rangos de pace según tu marca. Más oscuro = más intenso; a la izquierda, más rápido.</p>
+        </div>
+      </div>
+      <div class="zones" id="zones"></div>
+      <p class="note">Estimaciones con la fórmula de Riegel (T₂ = T₁ · (D₂/D₁)^1,06). Funcionan mejor entre 3 km y maratón y si estás entrenado para la distancia.</p>
+    </section>
+
     <p id="live" class="sr-only" aria-live="polite"></p>
   </section>
 </main>
 
-<footer>Running Tools · hecho para correr, no para venderte nada.</footer>
+<footer><svg aria-hidden="true"><use href="#i-shoe"/></svg>Running Tools · hecho para correr, no para venderte nada.</footer>
 
 <script>
 (() => {
@@ -352,6 +542,14 @@
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   };
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, text) => {
+    const n = document.createElementNS(SVGNS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  const riegel = (t1, d1, d2) => t1 * Math.pow(d2 / d1, 1.06);
 
   /* ================= Navegación ================= */
   const VIEWS = ['tabla', 'calculadora'];
@@ -361,9 +559,112 @@
     document.querySelectorAll('.tabs a').forEach(a => {
       if (a.dataset.view === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
-    if (v === 'tabla') table.scrollToHighlight();
+    if (v === 'tabla') { goalMap.redraw(); table.scrollToHighlight(); }
   }
   window.addEventListener('hashchange', route);
+
+  /* ================= Mapa de objetivos ================= */
+  const goalMap = (() => {
+    const host = $('g-map'), tip = $('g-tip');
+    // Marcas clásicas, en minutos
+    const GOALS = [
+      { name: '5K', d: 5000, mins: [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 30, 32, 35, 40, 45] },
+      { name: '10K', d: 10000, mins: [30, 32, 35, 38, 40, 42, 45, 48, 50, 55, 60, 65, 70, 75, 80, 90] },
+      { name: 'Media', d: 21097.5, mins: [65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 120, 130, 135, 150, 165, 180] },
+      { name: 'Maratón', d: 42195, mins: [135, 150, 165, 180, 195, 210, 225, 240, 255, 270, 285, 300, 330, 360] }
+    ];
+    const label = min => min >= 60 ? `${Math.floor(min / 60)}h${pad(min % 60)}` : `${min}′`;
+    let s = null, onPick = () => {}, svg = null, cross = null, geo = null;
+
+    function draw(state) { s = state; redraw(); }
+
+    function redraw() {
+      if (!s) return;
+      const W = host.clientWidth;
+      if (!W) return; // vista oculta
+      const L = W < 420 ? 62 : 76, R = 14, T = 26, rowH = 46, axisH = 24;
+      const H = T + GOALS.length * rowH + axisH;
+      const { from, to, unit, target } = s;
+      const span = Math.max(1, to - from);
+      const x = p => L + (p - from) / span * (W - L - R);
+      geo = { L, R, W, T, H, axisH, from, to, span };
+
+      if (svg) svg.remove();
+      svg = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img',
+        'aria-label': `Mapa de objetivos entre ${clock(from)} y ${clock(to)} por ${unit}` });
+
+      // Rejilla vertical y eje
+      const tickStep = [15, 30, 60, 120].find(t => (W - L - R) / (span / t) >= 46) || 120;
+      const g = el('g');
+      for (let p = Math.ceil(from / tickStep) * tickStep; p <= to; p += tickStep) {
+        g.append(el('line', { x1: x(p), x2: x(p), y1: T - 6, y2: H - axisH, stroke: 'var(--grid)', 'stroke-width': 1 }));
+        g.append(el('text', { x: x(p), y: H - 6, 'text-anchor': 'middle' }, clock(p)));
+      }
+      svg.append(g);
+
+      // Filas
+      GOALS.forEach((goal, i) => {
+        const y = T + i * rowH + rowH / 2 + 8;
+        svg.append(el('text', { x: 0, y: y + 4, class: 'rowname' }, goal.name));
+        svg.append(el('line', { x1: L, x2: W - R, y1: y, y2: y, stroke: 'var(--line)', 'stroke-width': 1 }));
+        let lastX = -Infinity;
+        const marks = goal.mins.map(m => ({ m, p: m * 60 / goal.d * M[unit] }))
+          .filter(o => o.p >= from - 0.01 && o.p <= to + 0.01);
+        marks.forEach(o => {
+          const px = x(o.p);
+          const c = el('circle', { cx: px, cy: y, r: 4.5, fill: 'var(--track)', stroke: 'var(--surface)', 'stroke-width': 2 });
+          c.append(el('title', {}, `${goal.name} en ${label(o.m)}: ${clock(o.p)} /${unit}`));
+          svg.append(c);
+          if (px - lastX >= 32) {
+            svg.append(el('text', { x: px, y: y - 10, 'text-anchor': 'middle' }, label(o.m)));
+            lastX = px;
+          }
+        });
+      });
+
+      // Pace buscado
+      if (target != null && target >= from && target <= to) {
+        const tx = x(target);
+        svg.append(el('line', { x1: tx, x2: tx, y1: T - 4, y2: H - axisH, stroke: 'var(--accent)', 'stroke-width': 2, 'stroke-linecap': 'round' }));
+        const anchor = tx < L + 50 ? 'start' : tx > W - R - 50 ? 'end' : 'middle';
+        svg.append(el('text', { x: tx, y: 12, 'text-anchor': anchor, class: 'tgt' }, `Tu pace ${clock(target)}`));
+      }
+
+      cross = el('line', { y1: T - 4, y2: H - axisH, stroke: 'var(--ink)', 'stroke-width': 1, 'stroke-opacity': .5, visibility: 'hidden' });
+      svg.append(cross);
+      host.prepend(svg);
+    }
+
+    function paceAt(clientX) {
+      const r = host.getBoundingClientRect();
+      const px = Math.min(Math.max(clientX - r.left, geo.L), geo.W - geo.R);
+      return { px, p: geo.from + (px - geo.L) / (geo.W - geo.L - geo.R) * geo.span };
+    }
+
+    host.addEventListener('pointermove', e => {
+      if (!geo || !s) return;
+      const { px, p } = paceAt(e.clientX);
+      const pr = Math.round(p);
+      cross.setAttribute('x1', px); cross.setAttribute('x2', px); cross.setAttribute('visibility', 'visible');
+      tip.innerHTML = `<b>${clock(pr)} /${s.unit}</b>` + GOALS.map(gl =>
+        `<span><i>${gl.name}</i>${clock(gl.d * pr / M[s.unit])}</span>`).join('');
+      tip.hidden = false;
+      const w = tip.offsetWidth;
+      tip.style.left = (px + 14 + w <= geo.W ? px + 14 : Math.max(0, px - 14 - w)) + 'px';
+      tip.style.top = geo.T + 'px';
+    });
+    host.addEventListener('pointerleave', () => { tip.hidden = true; if (cross) cross.setAttribute('visibility', 'hidden'); });
+    host.addEventListener('click', e => {
+      if (!geo || !s) return;
+      const { p } = paceAt(e.clientX);
+      onPick(Math.round(p));
+      tip.hidden = true;
+    });
+    if ('ResizeObserver' in window) new ResizeObserver(() => redraw()).observe(host);
+    else window.addEventListener('resize', redraw);
+
+    return { draw, redraw, set onPick(fn) { onPick = fn; } };
+  })();
 
   /* ================= Tabla de paces ================= */
   const table = (() => {
@@ -372,12 +673,13 @@
     const fromSel = $('t-from'), toSel = $('t-to'), stepSel = $('t-step'), find = $('t-find');
     let tunit = store.get('rt-table-unit') === 'mi' ? 'mi' : 'km';
     let target = null; // pace buscado, en s por unidad
+    const RSTEP = 15; // paso de las opciones de rango
 
     function fillRange() {
-      // Opciones de rango: de 2:00 a 12:00 por km, o 3:00 a 20:00 por milla
-      const [lo, hi, defFrom, defTo] = tunit === 'km' ? [120, 720, 180, 480] : [180, 1200, 300, 780];
+      // Rango por defecto: 3:45 a 7:00 /km (≈ 6:00 a 11:15 /milla)
+      const [lo, hi, defFrom, defTo] = tunit === 'km' ? [120, 720, 225, 420] : [180, 1200, 360, 675];
       const opts = [];
-      for (let s = lo; s <= hi; s += 30) opts.push(`<option value="${s}">${clock(s)}</option>`);
+      for (let s = lo; s <= hi; s += RSTEP) opts.push(`<option value="${s}">${clock(s)}</option>`);
       fromSel.innerHTML = opts.join(''); toSel.innerHTML = opts.join('');
       fromSel.value = defFrom; toSel.value = defTo;
     }
@@ -411,16 +713,27 @@
         if (target < from || target > to) hlPace = null;
       }
 
+      const maxSpeed = 3600 / from;
       const rows = [];
       for (let p = from; p <= to; p += step) {
         const spm = p / u; // segundos por metro
         const speed = 3600 / p; // km/h o mph
+        const bw = Math.round(6 + 34 * (speed / maxSpeed - 0.4) / 0.6);
         const cls = [p % 60 === 0 && p !== from ? 'minute' : '', p === hlPace ? 'hl' : ''].filter(Boolean).join(' ');
         rows.push(`<tr${cls ? ` class="${cls}"` : ''}>` +
-          `<td>${clock(p)}</td><td class="kmh">${speed.toFixed(1).replace(".", ",")}</td>` +
+          `<td>${clock(p)}</td><td class="kmh"><span class="spd"><span class="bar" style="width:${Math.max(4, bw)}px"></span>${speed.toFixed(1).replace('.', ',')}</span></td>` +
           DISTS.map(d => `<td>${clock(d * spm)}</td>`).join('') + '</tr>');
       }
       body.innerHTML = rows.join('');
+
+      $('t-chip-range').textContent = `${clock(from)}–${clock(to)} /${tunit}`;
+      $('t-chip-step').textContent = `cada ${step} s`;
+      $('t-chip-rows').textContent = `${rows.length} ritmos`;
+      const me = $('t-chip-me');
+      me.hidden = target == null;
+      if (target != null) me.textContent = `Tu pace ${clock(target)} /${tunit}`;
+
+      goalMap.draw({ from, to, step, unit: tunit, target });
     }
 
     function scrollToHighlight() {
@@ -444,8 +757,8 @@
     function ensureInRange() {
       // Amplía el rango si el pace buscado queda fuera
       const opts = [...fromSel.options].map(o => Number(o.value));
-      if (target < Number(fromSel.value)) fromSel.value = Math.max(opts[0], Math.floor(target / 30) * 30 - 30);
-      if (target > Number(toSel.value)) toSel.value = Math.min(opts[opts.length - 1], Math.ceil(target / 30) * 30 + 30);
+      if (target < Number(fromSel.value)) fromSel.value = Math.max(opts[0], Math.floor(target / RSTEP) * RSTEP - RSTEP);
+      if (target > Number(toSel.value)) toSel.value = Math.min(opts[opts.length - 1], Math.ceil(target / RSTEP) * RSTEP + RSTEP);
     }
 
     function search(pace, unitOfPace) {
@@ -460,6 +773,7 @@
     [fromSel, toSel, stepSel].forEach(s => s.addEventListener('change', () => { render(); scrollToHighlight(); }));
     document.querySelectorAll('[data-tunit]').forEach(b =>
       b.addEventListener('click', () => { if (b.dataset.tunit !== tunit) setUnit(b.dataset.tunit); }));
+    goalMap.onPick = p => { find.value = clock(p); search(p); };
 
     fillRange();
     document.querySelectorAll('[data-tunit]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tunit === tunit));
@@ -548,6 +862,49 @@
     update();
   }
 
+  /* ----- Predicción (Riegel) y ritmos de entrenamiento ----- */
+  const RACES = [
+    { name: '1 km', d: 1000 }, { name: '5K', d: 5000 }, { name: '10K', d: 10000 },
+    { name: 'Media maratón', d: 21097.5 }, { name: 'Maratón', d: 42195 }
+  ];
+  function renderInsights() {
+    const ok = vals.dist != null && vals.time != null && vals.dist >= 800;
+    $('c-pred').hidden = !ok; $('c-zones').hidden = !ok;
+    if (!ok) return;
+    const D = vals.dist, T = vals.time, u = M[unit];
+    const pace = d => riegel(T, D, d) / d; // s/m
+
+    $('p-sub').textContent = `A partir de ${dec(D / u, 2)} ${unit} en ${clock(T)}.`;
+    $('preds').innerHTML = RACES.map(r => {
+      const mine = Math.abs(r.d - D) / r.d < 0.01;
+      const t = mine ? T : riegel(T, D, r.d);
+      return `<div class="pred${mine ? ' mine' : ''}">
+        <div class="pn">${r.name}${mine ? '<span class="tag">tu marca</span>' : ''}</div>
+        <div class="pt">${clock(t)}</div>
+        <div class="pp">${clock(t / r.d * u)} /${unit}</div></div>`;
+    }).join('');
+
+    const mp = pace(42195);
+    const Z = [
+      { n: 'Suave', s: 'rodajes y recuperación', lo: mp * 1.12, hi: mp * 1.28, c: 'var(--z1)' },
+      { n: 'Maratón', s: 'tiradas con ritmo', lo: mp * 0.985, hi: mp * 1.015, c: 'var(--z2)' },
+      { n: 'Umbral', s: 'tempo, ~1 hora', lo: pace(15000), hi: pace(21097.5), c: 'var(--z3)' },
+      { n: 'Intervalos', s: 'series 800–1200 m', lo: pace(3000), hi: pace(5000), c: 'var(--z4)' },
+      { n: 'Repeticiones', s: 'series 200–400 m', lo: pace(1000), hi: pace(1500), c: 'var(--z5)' }
+    ].map(z => ({ ...z, lo: z.lo * u, hi: z.hi * u }));
+    const min = Math.floor(Math.min(...Z.map(z => z.lo)) / 15) * 15 - 5;
+    const max = Math.ceil(Math.max(...Z.map(z => z.hi)) / 15) * 15 + 5;
+    const pct = p => (p - min) / (max - min) * 100;
+    const tick = [30, 60, 120].find(t => (max - min) / t <= 5) || 120;
+    let axis = '';
+    for (let p = Math.ceil(min / tick) * tick; p <= max; p += tick) axis += `<span style="left:${pct(p)}%">${clock(p)}</span>`;
+    $('zones').innerHTML = Z.map(z => `
+      <div class="zname">${z.n}<small>${z.s}</small></div>
+      <div class="ztrack" title="${z.n}: ${clock(z.lo)}–${clock(z.hi)} /${unit}"><span class="zbar" style="left:${pct(z.lo)}%;width:${pct(z.hi) - pct(z.lo)}%;background:${z.c}"></span></div>
+      <div class="zval">${clock(z.lo)}–${clock(z.hi)}</div>`).join('') +
+      `<div></div><div class="zaxis" aria-hidden="true">${axis}</div><div class="zval" style="font-weight:400;color:var(--muted);font-size:.78rem">/${unit}</div>`;
+  }
+
   let liveTimer;
   function update() {
     FIELDS.forEach(f => {
@@ -569,6 +926,7 @@
       const on = vals.dist != null && Math.abs(vals.dist - Number(b.dataset.km) * 1000) < 1;
       b.setAttribute('aria-pressed', on);
     });
+    renderInsights();
     clearTimeout(liveTimer);
     liveTimer = setTimeout(() => {
       if (!computed) { $('live').textContent = ''; return; }
@@ -589,24 +947,24 @@
     update();
   }
 
-  FIELDS.forEach(f => inp[f].forEach((el, i, arr) => {
-    el.addEventListener('input', e => {
-      const clean = f === 'dist' ? el.value.replace(/[^\d.,]/g, '') : el.value.replace(/\D/g, '');
-      if (clean !== el.value) el.value = clean;
+  FIELDS.forEach(f => inp[f].forEach((elm, i, arr) => {
+    elm.addEventListener('input', e => {
+      const clean = f === 'dist' ? elm.value.replace(/[^\d.,]/g, '') : elm.value.replace(/\D/g, '');
+      if (clean !== elm.value) elm.value = clean;
       const typing = e.inputType && e.inputType.startsWith('insert');
-      if (f !== 'dist' && typing && el.value.length >= 2 && arr[i + 1]) arr[i + 1].focus();
+      if (f !== 'dist' && typing && elm.value.length >= 2 && arr[i + 1]) arr[i + 1].focus();
       applyEdit(f, parse(f));
     });
     // Al salir, normaliza segundos/minutos > 59 (p. ej. 4:75 → 5:15)
-    el.addEventListener('blur', () => {
+    elm.addEventListener('blur', () => {
       if (f !== 'dist' && vals[f] != null && computed !== f) {
         const parts = inp[f].map(x => num(x.value) || 0);
         const over = f === 'time' ? parts[1] > 59 || parts[2] > 59 : parts[1] > 59;
         if (over) render(f);
       }
     });
-    el.addEventListener('focus', () => setTimeout(() => { try { el.select(); } catch (e) {} }, 0));
-    el.addEventListener('keydown', e => { if (e.key === 'Enter') el.blur(); });
+    elm.addEventListener('focus', () => setTimeout(() => { try { elm.select(); } catch (e) {} }, 0));
+    elm.addEventListener('keydown', e => { if (e.key === 'Enter') elm.blur(); });
   }));
 
   document.querySelectorAll('[data-unit]').forEach(b =>
