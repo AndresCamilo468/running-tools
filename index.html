@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Running Tools</title>
+<meta name="description" content="Tabla de paces y calculadora de carreras: distancia, tiempo y pace.">
+<meta name="theme-color" content="#2356A8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232356A8'/%3E%3Cpath d='M8 22l6-12 4 8 2-4 4 8' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #E8EDF1;
+    --surface: #FFFFFF;
+    --surface-2: #F3F6F9;
+    --ink: #13202C;
+    --muted: #5A6B7B;
+    --line: #C9D3DC;
+    --track: #2356A8;
+    --track-soft: #DCE7F7;
+    --on-track: #FFFFFF;
+    --on-track-line: rgba(255, 255, 255, .38);
+    --radius: 16px;
+    --display: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', system-ui, sans-serif;
+    --body: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D141B; --surface: #15202A; --surface-2: #1A2733; --ink: #E5ECF2; --muted: #8FA0B0;
+      --line: #2A3947; --track: #5E95EC; --track-soft: #1C3355; --on-track: #08111C;
+      --on-track-line: rgba(8, 17, 28, .32); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D141B; --surface: #15202A; --surface-2: #1A2733; --ink: #E5ECF2; --muted: #8FA0B0;
+    --line: #2A3947; --track: #5E95EC; --track-soft: #1C3355; --on-track: #08111C;
+    --on-track-line: rgba(8, 17, 28, .32); color-scheme: dark;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--body);
+    font-size: 17px; line-height: 1.45;
+    -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Cabecera y pestañas */
+  .appbar {
+    position: sticky; top: 0; z-index: 10; background: var(--bg);
+    padding-top: env(safe-area-inset-top, 0px);
+    border-bottom: 1px solid var(--line);
+  }
+  .appbar-in { max-width: 46rem; margin: 0 auto; padding: 12px 16px 0; }
+  .brand {
+    font-family: var(--display); font-weight: 700; font-size: 1.35rem;
+    letter-spacing: .02em; text-transform: uppercase; margin: 0 0 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .brand svg { width: 24px; height: 24px; }
+  .tabs { display: flex; gap: 4px; }
+  .tabs a {
+    flex: 1; text-align: center; text-decoration: none; color: var(--muted);
+    font-weight: 600; font-size: .98rem; padding: 10px 8px 12px;
+    border-bottom: 3px solid transparent; margin-bottom: -1px;
+  }
+  .tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--track); }
+
+  main { max-width: 46rem; margin: 0 auto; padding: 22px 16px 48px; }
+  .view[hidden] { display: none; }
+  .narrow { max-width: 30rem; margin: 0 auto; }
+
+  h1 { font-family: var(--display); font-weight: 700; font-size: 2.1rem; line-height: 1; margin: 0 0 6px; }
+  .hint { margin: 0; color: var(--muted); font-size: .98rem; }
+  .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; margin-bottom: 6px; }
+
+  .units { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .units button {
+    font: 600 .95rem var(--body); border: 0; background: transparent; color: var(--muted);
+    padding: 6px 14px; border-radius: 999px; min-height: 36px; cursor: pointer;
+  }
+  .units button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+  /* ---------- Tabla de paces ---------- */
+  .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 16px 0 12px; }
+  .ctl { display: flex; flex-direction: column; gap: 4px; }
+  .ctl label, .ctl .ctl-name { font-size: .85rem; color: var(--muted); font-weight: 600; }
+  .ctl select, .ctl input {
+    font: 600 1rem var(--body); color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-height: 40px;
+  }
+  .ctl input { width: 6.5rem; font-variant-numeric: tabular-nums; }
+  .ctl input:focus, .ctl select:focus { outline: 2px solid var(--track); outline-offset: 1px; border-color: var(--track); }
+
+  .table-wrap {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: auto; max-height: calc(100vh - 260px); max-height: calc(100dvh - 260px); min-height: 320px;
+  }
+  table { border-collapse: separate; border-spacing: 0; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { padding: 9px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  thead th {
+    position: sticky; top: 0; z-index: 2; background: var(--surface-2);
+    font-size: .8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em;
+  }
+  th:first-child, td:first-child { position: sticky; left: 0; text-align: left; background: var(--surface); z-index: 1; }
+  thead th:first-child { z-index: 3; background: var(--surface-2); }
+  td:first-child { font-family: var(--display); font-weight: 600; font-size: 1.2rem; }
+  td { font-size: .98rem; }
+  td.kmh { color: var(--muted); }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr.minute td { border-top: 1px solid var(--muted); }
+  tbody tr:hover td { background: var(--surface-2); }
+  tbody tr.hl td { background: var(--track-soft); }
+  tbody tr.hl td:first-child { box-shadow: inset 4px 0 0 var(--track); }
+  .table-note { font-size: .82rem; color: var(--muted); margin: 10px 4px 0; }
+
+  /* ---------- Calculadora ---------- */
+  .field {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px 16px 16px; margin-top: 12px;
+    transition: background-color .22s ease, border-color .22s ease, color .22s ease;
+  }
+  .field-head { display: flex; justify-content: space-between; align-items: center; min-height: 26px; }
+  .name { font-weight: 600; font-size: .95rem; color: var(--muted); }
+  .badge {
+    font-size: .8rem; font-weight: 600; padding: 2px 10px; border-radius: 999px;
+    background: var(--on-track); color: var(--track);
+  }
+  .big {
+    font-family: var(--display); font-weight: 600; font-size: clamp(2.75rem, 13vw, 3.5rem); line-height: 1.1;
+    font-variant-numeric: tabular-nums; color: inherit; caret-color: currentColor;
+    background: transparent; border: 0; border-bottom: 2px solid var(--line); border-radius: 0;
+    padding: 2px 0; width: 100%; min-width: 0; outline: none; -webkit-appearance: none; appearance: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .big::placeholder { color: var(--line); opacity: 1; }
+  .big:focus { border-bottom-color: var(--track); box-shadow: 0 2px 0 0 var(--track); }
+  .dist-row { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; margin-top: 4px; }
+  .seg { display: grid; align-items: end; column-gap: 6px; margin-top: 4px; }
+  .seg-3 { grid-template-columns: 1fr auto 1fr auto 1fr; }
+  .seg-2 { grid-template-columns: 1fr auto 1fr auto; }
+  .seg .big { text-align: center; }
+  .sep, .unit { font-family: var(--display); color: var(--muted); line-height: 1.1; }
+  .sep { font-size: 2.4rem; padding-bottom: 6px; }
+  .unit { font-size: 1.5rem; font-weight: 500; padding-bottom: 10px; padding-left: 4px; }
+  .lbl { font-size: .8rem; color: var(--muted); text-align: center; margin-top: 4px; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .presets button {
+    font: 500 .9rem var(--body); border: 1px solid var(--line); background: transparent;
+    color: inherit; border-radius: 999px; padding: 6px 12px; min-height: 34px; cursor: pointer;
+  }
+  .presets button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+
+  .field.is-computed { background: var(--track); border-color: var(--track); color: var(--on-track); }
+  .field.is-computed .name, .field.is-computed .sep, .field.is-computed .unit, .field.is-computed .lbl { color: var(--on-track); opacity: .78; }
+  .field.is-computed .big { border-bottom-color: var(--on-track-line); }
+  .field.is-computed .big:focus { border-bottom-color: var(--on-track); box-shadow: 0 2px 0 0 var(--on-track); }
+  .field.is-computed .big::placeholder { color: var(--on-track-line); }
+  .field.is-computed .presets button { border-color: var(--on-track-line); }
+  .field.is-computed .presets button[aria-pressed="true"] { background: var(--on-track); color: var(--track); border-color: var(--on-track); }
+
+  .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; padding: 0 4px; }
+  .stat .k { font-size: .85rem; color: var(--muted); }
+  .stat .v { font-family: var(--display); font-weight: 600; font-size: 1.7rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .actions { margin-top: 14px; padding: 0 4px; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .linkbtn {
+    font: 600 .95rem var(--body); background: transparent; border: 0; padding: 8px 0;
+    color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+  }
+  .linkbtn.primary { color: var(--track); }
+
+  :focus-visible { outline: 2px solid var(--track); outline-offset: 2px; }
+  .big:focus-visible { outline: none; }
+  .field.is-computed :focus-visible { outline-color: var(--on-track); }
+  [hidden] { display: none !important; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  footer { max-width: 46rem; margin: 0 auto; padding: 0 16px 32px; font-size: .8rem; color: var(--muted); }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-in">
+    <p class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--track)"/><path d="M8 22l6-12 4 8 2-4 4 8" stroke="var(--on-track)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Running Tools
+    </p>
+    <nav class="tabs" aria-label="Herramientas">
+      <a href="#tabla" data-view="tabla">Tabla de paces</a>
+      <a href="#calculadora" data-view="calculadora">Calculadora</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ================= TABLA ================= -->
+  <section class="view" id="view-tabla" aria-labelledby="t-title">
+    <div class="top">
+      <div>
+        <h1 id="t-title">Tabla de paces</h1>
+        <p class="hint">Velocidad y tiempo esperado por distancia para cada pace.</p>
+      </div>
+      <div class="units" role="group" aria-label="Unidad del pace">
+        <button type="button" data-tunit="km" aria-pressed="true">/km</button>
+        <button type="button" data-tunit="mi" aria-pressed="false">/milla</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <label for="t-find">Buscar mi pace</label>
+        <input id="t-find" type="text" inputmode="numeric" placeholder="5:00" autocomplete="off">
+      </div>
+      <div class="ctl">
+        <label for="t-from">Desde</label>
+        <select id="t-from"></select>
+      </div>
+      <div class="ctl">
+        <label for="t-to">Hasta</label>
+        <select id="t-to"></select>
+      </div>
+      <div class="ctl">
+        <label for="t-step">Cada</label>
+        <select id="t-step">
+          <option value="5">5 s</option>
+          <option value="10" selected>10 s</option>
+          <option value="15">15 s</option>
+          <option value="30">30 s</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap" id="t-wrap" tabindex="0" aria-label="Tabla de paces, desplazable">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col" id="t-h-pace">Pace /km</th>
+            <th scope="col" id="t-h-speed">km/h</th>
+            <th scope="col">1 km</th>
+            <th scope="col">5 km</th>
+            <th scope="col">10 km</th>
+            <th scope="col">Media</th>
+            <th scope="col">Maratón</th>
+          </tr>
+        </thead>
+        <tbody id="t-body"></tbody>
+      </table>
+    </div>
+    <p class="table-note">Tiempos a pace constante. Media maratón = 21,0975 km · Maratón = 42,195 km.</p>
+  </section>
+
+  <!-- ================= CALCULADORA ================= -->
+  <section class="view narrow" id="view-calculadora" aria-labelledby="c-title" hidden>
+    <div class="top">
+      <div>
+        <h1 id="c-title">Calculadora</h1>
+        <p class="hint">Escribe dos valores y el tercero se calcula solo.</p>
+      </div>
+      <div class="units" role="group" aria-label="Unidad de distancia">
+        <button type="button" data-unit="km" aria-pressed="true">km</button>
+        <button type="button" data-unit="mi" aria-pressed="false">millas</button>
+      </div>
+    </div>
+
+    <section class="field" id="f-dist">
+      <div class="field-head">
+        <label class="name" for="dist">Distancia</label>
+        <span class="badge" hidden>Calculado</span>
+      </div>
+      <div class="dist-row">
+        <input id="dist" class="big" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+        <span class="unit" id="dist-unit">km</span>
+      </div>
+      <div class="presets" aria-label="Distancias comunes">
+        <button type="button" data-km="1">1K</button>
+        <button type="button" data-km="5">5K</button>
+        <button type="button" data-km="10">10K</button>
+        <button type="button" data-km="21.0975">Media maratón</button>
+        <button type="button" data-km="42.195">Maratón</button>
+      </div>
+    </section>
+
+    <section class="field" id="f-time">
+      <div class="field-head">
+        <span class="name" id="time-name">Tiempo</span>
+        <span class="badge" hidden>Calculado</span>
+      </div>
+      <div class="seg seg-3" role="group" aria-labelledby="time-name">
+        <input id="th" class="big" type="text" inputmode="numeric" maxlength="2" placeholder="0" autocomplete="off" aria-label="Horas">
+        <span class="sep" aria-hidden="true">:</span>
+        <input id="tm" class="big" type="text" inputmode="numeric" maxlength="2" placeholder="00" autocomplete="off" aria-label="Minutos">
+        <span class="sep" aria-hidden="true">:</span>
+        <input id="ts" class="big" type="text" inputmode="numeric" maxlength="2" placeholder="00" autocomplete="off" aria-label="Segundos">
+        <span class="lbl" aria-hidden="true">h</span><span></span>
+        <span class="lbl" aria-hidden="true">min</span><span></span>
+        <span class="lbl" aria-hidden="true">s</span>
+      </div>
+    </section>
+
+    <section class="field" id="f-pace">
+      <div class="field-head">
+        <span class="name" id="pace-name">Pace</span>
+        <span class="badge" hidden>Calculado</span>
+      </div>
+      <div class="seg seg-2" role="group" aria-labelledby="pace-name">
+        <input id="pm" class="big" type="text" inputmode="numeric" maxlength="2" placeholder="0" autocomplete="off" aria-label="Minutos por unidad">
+        <span class="sep" aria-hidden="true">:</span>
+        <input id="ps" class="big" type="text" inputmode="numeric" maxlength="2" placeholder="00" autocomplete="off" aria-label="Segundos por unidad">
+        <span class="unit" id="pace-unit">/km</span>
+        <span class="lbl" aria-hidden="true">min</span><span></span>
+        <span class="lbl" aria-hidden="true">s</span><span></span>
+      </div>
+    </section>
+
+    <div class="summary">
+      <div class="stat">
+        <div class="k">Velocidad media</div>
+        <div class="v" id="speed">–</div>
+      </div>
+      <div class="stat">
+        <div class="k" id="alt-label">Pace en millas</div>
+        <div class="v" id="alt-pace">–</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="linkbtn primary" id="to-table" hidden>Ver este pace en la tabla</button>
+      <button type="button" class="linkbtn" id="clear">Borrar todo</button>
+    </div>
+
+    <p id="live" class="sr-only" aria-live="polite"></p>
+  </section>
+</main>
+
+<footer>Running Tools · hecho para correr, no para venderte nada.</footer>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const M = { km: 1000, mi: 1609.344 };
+  const pad = x => String(x).padStart(2, '0');
+  const dec = (x, d) => x.toFixed(d).replace(/\.?0+$/, '').replace('.', ',');
+  const clock = secs => {
+    const t = Math.round(secs);
+    const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+  };
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  /* ================= Navegación ================= */
+  const VIEWS = ['tabla', 'calculadora'];
+  function route() {
+    const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'tabla';
+    VIEWS.forEach(n => { $('view-' + n).hidden = n !== v; });
+    document.querySelectorAll('.tabs a').forEach(a => {
+      if (a.dataset.view === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    if (v === 'tabla') table.scrollToHighlight();
+  }
+  window.addEventListener('hashchange', route);
+
+  /* ================= Tabla de paces ================= */
+  const table = (() => {
+    const DISTS = [1000, 5000, 10000, 21097.5, 42195];
+    const body = $('t-body'), wrap = $('t-wrap');
+    const fromSel = $('t-from'), toSel = $('t-to'), stepSel = $('t-step'), find = $('t-find');
+    let tunit = store.get('rt-table-unit') === 'mi' ? 'mi' : 'km';
+    let target = null; // pace buscado, en s por unidad
+
+    function fillRange() {
+      // Opciones de rango: de 2:00 a 12:00 por km, o 3:00 a 20:00 por milla
+      const [lo, hi, defFrom, defTo] = tunit === 'km' ? [120, 720, 180, 480] : [180, 1200, 300, 780];
+      const opts = [];
+      for (let s = lo; s <= hi; s += 30) opts.push(`<option value="${s}">${clock(s)}</option>`);
+      fromSel.innerHTML = opts.join(''); toSel.innerHTML = opts.join('');
+      fromSel.value = defFrom; toSel.value = defTo;
+    }
+
+    function parsePace(str) {
+      const t = str.trim();
+      if (!t) return null;
+      let m, s;
+      if (/[:.,']/.test(t)) {
+        const [a, b = '0'] = t.split(/[:.,']/);
+        m = Number(a); s = Number(b.padEnd(2, '0').slice(0, 2));
+      } else if (t.length >= 3) { m = Number(t.slice(0, -2)); s = Number(t.slice(-2)); }
+      else { m = Number(t); s = 0; }
+      if (!Number.isFinite(m) || !Number.isFinite(s) || s > 59) return null;
+      const v = m * 60 + s;
+      return v > 0 ? v : null;
+    }
+
+    function render() {
+      let from = Number(fromSel.value), to = Number(toSel.value);
+      if (from > to) [from, to] = [to, from];
+      const step = Number(stepSel.value);
+      const u = M[tunit];
+      $('t-h-pace').textContent = tunit === 'km' ? 'Pace /km' : 'Pace /mi';
+      $('t-h-speed').textContent = tunit === 'km' ? 'km/h' : 'mph';
+
+      // ¿Qué fila resaltar? La más cercana al pace buscado
+      let hlPace = null;
+      if (target != null) {
+        hlPace = Math.round((target - from) / step) * step + from;
+        if (target < from || target > to) hlPace = null;
+      }
+
+      const rows = [];
+      for (let p = from; p <= to; p += step) {
+        const spm = p / u; // segundos por metro
+        const speed = 3600 / p; // km/h o mph
+        const cls = [p % 60 === 0 && p !== from ? 'minute' : '', p === hlPace ? 'hl' : ''].filter(Boolean).join(' ');
+        rows.push(`<tr${cls ? ` class="${cls}"` : ''}>` +
+          `<td>${clock(p)}</td><td class="kmh">${speed.toFixed(1).replace(".", ",")}</td>` +
+          DISTS.map(d => `<td>${clock(d * spm)}</td>`).join('') + '</tr>');
+      }
+      body.innerHTML = rows.join('');
+    }
+
+    function scrollToHighlight() {
+      const row = body.querySelector('tr.hl');
+      if (!row) return;
+      const head = wrap.querySelector('thead').offsetHeight;
+      wrap.scrollTop = row.offsetTop - head - (wrap.clientHeight - head) / 2 + row.offsetHeight / 2;
+    }
+
+    function setUnit(u) {
+      if (target != null) target = target / M[tunit] * M[u];
+      tunit = u;
+      store.set('rt-table-unit', u);
+      document.querySelectorAll('[data-tunit]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tunit === u));
+      fillRange();
+      if (target != null) { find.value = clock(target); ensureInRange(); }
+      render();
+      scrollToHighlight();
+    }
+
+    function ensureInRange() {
+      // Amplía el rango si el pace buscado queda fuera
+      const opts = [...fromSel.options].map(o => Number(o.value));
+      if (target < Number(fromSel.value)) fromSel.value = Math.max(opts[0], Math.floor(target / 30) * 30 - 30);
+      if (target > Number(toSel.value)) toSel.value = Math.min(opts[opts.length - 1], Math.ceil(target / 30) * 30 + 30);
+    }
+
+    function search(pace, unitOfPace) {
+      if (unitOfPace && unitOfPace !== tunit) pace = pace / M[unitOfPace] * M[tunit];
+      target = pace;
+      if (target != null) ensureInRange();
+      render();
+      scrollToHighlight();
+    }
+
+    find.addEventListener('input', () => search(parsePace(find.value)));
+    [fromSel, toSel, stepSel].forEach(s => s.addEventListener('change', () => { render(); scrollToHighlight(); }));
+    document.querySelectorAll('[data-tunit]').forEach(b =>
+      b.addEventListener('click', () => { if (b.dataset.tunit !== tunit) setUnit(b.dataset.tunit); }));
+
+    fillRange();
+    document.querySelectorAll('[data-tunit]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tunit === tunit));
+    render();
+
+    return {
+      scrollToHighlight,
+      showPace(secPerMeter) {
+        // Recibe pace en s/m desde la calculadora
+        const p = secPerMeter * M[tunit];
+        find.value = clock(p);
+        search(p);
+      }
+    };
+  })();
+
+  /* ================= Calculadora ================= */
+  const FIELDS = ['dist', 'time', 'pace'];
+  const NAMES = { dist: 'Distancia', time: 'Tiempo', pace: 'Pace' };
+  let unit = store.get('rt-calc-unit') === 'mi' ? 'mi' : 'km';
+  const vals = { dist: null, time: null, pace: null }; // metros, segundos, s/m
+  let computed = null;
+
+  const inp = { dist: [$('dist')], time: [$('th'), $('tm'), $('ts')], pace: [$('pm'), $('ps')] };
+  const box = { dist: $('f-dist'), time: $('f-time'), pace: $('f-pace') };
+
+  function num(v) {
+    v = v.trim().replace(',', '.');
+    if (v === '') return null;
+    const x = Number(v);
+    return Number.isFinite(x) && x >= 0 ? x : NaN;
+  }
+
+  function parse(f) {
+    if (f === 'dist') {
+      const x = num(inp.dist[0].value);
+      return x > 0 ? x * M[unit] : null;
+    }
+    const parts = inp[f].map(i => num(i.value));
+    if (parts.some(p => Number.isNaN(p))) return null;
+    if (parts.every(p => p === null)) return null;
+    const total = f === 'time'
+      ? (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0)
+      : ((parts[0] || 0) * 60 + (parts[1] || 0)) / M[unit];
+    return total > 0 ? total : null;
+  }
+
+  function render(f) {
+    const v = vals[f];
+    if (f === 'dist') {
+      inp.dist[0].value = v == null ? '' : dec(v / M[unit], computed === 'dist' ? 2 : 3);
+    } else if (f === 'time') {
+      if (v == null) { inp.time.forEach(i => i.value = ''); return; }
+      const t = Math.round(v);
+      inp.time[0].value = Math.floor(t / 3600);
+      inp.time[1].value = pad(Math.floor((t % 3600) / 60));
+      inp.time[2].value = pad(t % 60);
+    } else {
+      if (v == null) { inp.pace.forEach(i => i.value = ''); return; }
+      const t = Math.round(v * M[unit]);
+      inp.pace[0].value = Math.floor(t / 60);
+      inp.pace[1].value = pad(t % 60);
+    }
+  }
+
+  function compute(target) {
+    if (target === 'dist') vals.dist = vals.time / vals.pace;
+    else if (target === 'time') vals.time = vals.dist * vals.pace;
+    else vals.pace = vals.time / vals.dist;
+    computed = target;
+    render(target);
+  }
+
+  function applyEdit(f, value) {
+    vals[f] = value;
+    if (computed === f) computed = null;
+    if (value == null) {
+      if (computed) { vals[computed] = null; render(computed); computed = null; }
+    } else if (computed) {
+      compute(computed);
+    } else {
+      const filled = FIELDS.filter(x => vals[x] != null);
+      if (filled.length === 2) compute(FIELDS.find(x => vals[x] == null));
+      else if (filled.length === 3) compute(f === 'time' ? 'pace' : 'time');
+    }
+    update();
+  }
+
+  let liveTimer;
+  function update() {
+    FIELDS.forEach(f => {
+      box[f].classList.toggle('is-computed', computed === f);
+      box[f].querySelector('.badge').hidden = computed !== f;
+    });
+    const other = unit === 'km' ? 'mi' : 'km';
+    $('alt-label').textContent = unit === 'km' ? 'Pace en millas' : 'Pace por km';
+    if (vals.pace != null) {
+      const speed = unit === 'km' ? 3.6 / vals.pace : 2.2369363 / vals.pace;
+      $('speed').textContent = `${speed.toFixed(1).replace('.', ',')} ${unit === 'km' ? 'km/h' : 'mph'}`;
+      $('alt-pace').textContent = `${clock(vals.pace * M[other])} /${other}`;
+    } else {
+      $('speed').textContent = '–';
+      $('alt-pace').textContent = '–';
+    }
+    $('to-table').hidden = vals.pace == null;
+    document.querySelectorAll('[data-km]').forEach(b => {
+      const on = vals.dist != null && Math.abs(vals.dist - Number(b.dataset.km) * 1000) < 1;
+      b.setAttribute('aria-pressed', on);
+    });
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(() => {
+      if (!computed) { $('live').textContent = ''; return; }
+      const v = vals[computed];
+      const text = computed === 'dist' ? `${dec(v / M[unit], 2)} ${unit}`
+        : computed === 'time' ? clock(v) : `${clock(v * M[unit])} por ${unit}`;
+      $('live').textContent = `${NAMES[computed]} calculado: ${text}`;
+    }, 700);
+  }
+
+  function setUnit(u) {
+    unit = u;
+    store.set('rt-calc-unit', u);
+    document.querySelectorAll('[data-unit]').forEach(b => b.setAttribute('aria-pressed', b.dataset.unit === u));
+    $('dist-unit').textContent = u;
+    $('pace-unit').textContent = '/' + u;
+    FIELDS.forEach(render);
+    update();
+  }
+
+  FIELDS.forEach(f => inp[f].forEach((el, i, arr) => {
+    el.addEventListener('input', e => {
+      const clean = f === 'dist' ? el.value.replace(/[^\d.,]/g, '') : el.value.replace(/\D/g, '');
+      if (clean !== el.value) el.value = clean;
+      const typing = e.inputType && e.inputType.startsWith('insert');
+      if (f !== 'dist' && typing && el.value.length >= 2 && arr[i + 1]) arr[i + 1].focus();
+      applyEdit(f, parse(f));
+    });
+    // Al salir, normaliza segundos/minutos > 59 (p. ej. 4:75 → 5:15)
+    el.addEventListener('blur', () => {
+      if (f !== 'dist' && vals[f] != null && computed !== f) {
+        const parts = inp[f].map(x => num(x.value) || 0);
+        const over = f === 'time' ? parts[1] > 59 || parts[2] > 59 : parts[1] > 59;
+        if (over) render(f);
+      }
+    });
+    el.addEventListener('focus', () => setTimeout(() => { try { el.select(); } catch (e) {} }, 0));
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') el.blur(); });
+  }));
+
+  document.querySelectorAll('[data-unit]').forEach(b =>
+    b.addEventListener('click', () => { if (b.dataset.unit !== unit) setUnit(b.dataset.unit); }));
+
+  document.querySelectorAll('[data-km]').forEach(b => b.addEventListener('click', () => {
+    const meters = Number(b.dataset.km) * 1000;
+    inp.dist[0].value = dec(meters / M[unit], 3);
+    applyEdit('dist', meters);
+  }));
+
+  $('clear').addEventListener('click', () => {
+    FIELDS.forEach(f => { vals[f] = null; });
+    computed = null;
+    FIELDS.forEach(render);
+    update();
+  });
+
+  $('to-table').addEventListener('click', () => {
+    table.showPace(vals.pace);
+    location.hash = '#tabla';
+  });
+
+  setUnit(unit);
+  route();
+})();
+</script>
+</body>
+</html>
